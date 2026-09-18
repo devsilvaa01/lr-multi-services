@@ -1,0 +1,13 @@
+LR MULTI SERVICES - Sistema de Orçamentos
+
+Versão atual: orçamento adaptado para construção civil.
+
+Inclui:
+- Cadastro de clientes
+- Orçamentos com serviço, unidade, quantidade e valor unitário
+- Cálculo automático do total
+- Histórico e status
+- Geração de PDF com a logo LR Multi Services
+- Backup e restauração dos dados
+
+Para usar: extraia os arquivos e abra o index.html no navegador.
