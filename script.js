@@ -1,9 +1,90 @@
-// ================================
-// LOGIN
-// ================================
+// ============================================================
+// LR MULTI SERVICES - SISTEMA DE ORÇAMENTOS
+// Estrutura por ambiente + compatibilidade com orçamentos antigos
+// ============================================================
 
 const LOGIN_USUARIO = "admin";
 const LOGIN_SENHA = "LR2026";
+
+// ============================================================
+// UTILITÁRIOS
+// ============================================================
+
+function formatarMoeda(valor) {
+    return Number(valor || 0).toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL"
+    });
+}
+
+function escaparHTML(valor) {
+    return String(valor ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function textoComQuebra(valor) {
+    return escaparHTML(valor).replace(/\n/g, "<br>");
+}
+
+function calcularTotalItem(item) {
+    if (String(item.unidade).toLowerCase() === "empreitada") {
+        return Number(item.valor || 0);
+    }
+
+    return Number(item.quantidade || 0) * Number(item.valor || 0);
+}
+
+function obterAmbientes(orcamento) {
+    if (Array.isArray(orcamento.ambientes) && orcamento.ambientes.length) {
+        return orcamento.ambientes;
+    }
+
+    // Compatibilidade com orçamentos antigos que tinham apenas "itens".
+    if (Array.isArray(orcamento.itens) && orcamento.itens.length) {
+        return [{
+            nome: "Serviços gerais",
+            itens: orcamento.itens.map(item => ({
+                ...item,
+                total: Number(item.total ?? calcularTotalItem(item))
+            })),
+            total: Number(
+                orcamento.total ||
+                orcamento.itens.reduce(
+                    (soma, item) => soma + calcularTotalItem(item),
+                    0
+                )
+            )
+        }];
+    }
+
+    return [];
+}
+
+function calcularTotalAmbiente(ambiente) {
+    return (ambiente.itens || []).reduce(
+        (total, item) => total + calcularTotalItem(item),
+        0
+    );
+}
+
+function calcularTotalOrcamento(orcamento) {
+    return obterAmbientes(orcamento).reduce(
+        (total, ambiente) => total + calcularTotalAmbiente(ambiente),
+        0
+    );
+}
+
+function salvarOrcamentos() {
+    localStorage.setItem("orcamentos", JSON.stringify(orcamentos));
+}
+
+// ============================================================
+// LOGIN
+// ============================================================
 
 const telaLogin = document.querySelector("#tela-login");
 const app = document.querySelector("#app");
@@ -12,7 +93,8 @@ const erroLogin = document.querySelector("#login-erro");
 const botaoSair = document.querySelector("#btn-sair");
 
 function verificarLogin() {
-    const logado = sessionStorage.getItem("lrMultiServicesLogado") === "true";
+    const logado =
+        sessionStorage.getItem("lrMultiServicesLogado") === "true";
 
     if (logado) {
         telaLogin.classList.add("app-oculto");
@@ -26,39 +108,65 @@ function verificarLogin() {
 formularioLogin.addEventListener("submit", function (event) {
     event.preventDefault();
 
-    const usuario = document.querySelector("#login-usuario").value.trim();
+    const usuario = document
+        .querySelector("#login-usuario")
+        .value
+        .trim();
+
     const senha = document.querySelector("#login-senha").value;
 
-    if (usuario === LOGIN_USUARIO && senha === LOGIN_SENHA) {
-        sessionStorage.setItem("lrMultiServicesLogado", "true");
+    if (
+        usuario === LOGIN_USUARIO &&
+        senha === LOGIN_SENHA
+    ) {
+        sessionStorage.setItem(
+            "lrMultiServicesLogado",
+            "true"
+        );
+
         erroLogin.textContent = "";
         formularioLogin.reset();
         verificarLogin();
     } else {
-        erroLogin.textContent = "Usuário ou senha incorretos.";
+        erroLogin.textContent =
+            "Usuário ou senha incorretos.";
     }
 });
 
 botaoSair.addEventListener("click", function () {
-    sessionStorage.removeItem("lrMultiServicesLogado");
+    sessionStorage.removeItem(
+        "lrMultiServicesLogado"
+    );
+
     verificarLogin();
 });
 
-verificarLogin();
-
-// ================================
+// ============================================================
 // MODAL DE CONFIRMAÇÃO
-// ================================
+// ============================================================
 
-const modalConfirmacao = document.querySelector("#modal-confirmacao");
-const modalTitulo = document.querySelector("#modal-titulo");
-const modalMensagem = document.querySelector("#modal-mensagem");
-const modalCancelar = document.querySelector("#modal-cancelar");
-const modalConfirmar = document.querySelector("#modal-confirmar");
+const modalConfirmacao =
+    document.querySelector("#modal-confirmacao");
+
+const modalTitulo =
+    document.querySelector("#modal-titulo");
+
+const modalMensagem =
+    document.querySelector("#modal-mensagem");
+
+const modalCancelar =
+    document.querySelector("#modal-cancelar");
+
+const modalConfirmar =
+    document.querySelector("#modal-confirmar");
 
 let resolverConfirmacao = null;
 
-function mostrarConfirmacao(mensagem, titulo = "Confirmar ação", textoBotao = "Confirmar") {
+function mostrarConfirmacao(
+    mensagem,
+    titulo = "Confirmar ação",
+    textoBotao = "Confirmar"
+) {
     return new Promise(function (resolve) {
         resolverConfirmacao = resolve;
 
@@ -67,11 +175,16 @@ function mostrarConfirmacao(mensagem, titulo = "Confirmar ação", textoBotao = 
         modalConfirmar.textContent = textoBotao;
 
         modalConfirmacao.classList.add("ativo");
-        modalConfirmacao.setAttribute("aria-hidden", "false");
 
-        setTimeout(function () {
-            modalConfirmar.focus();
-        }, 50);
+        modalConfirmacao.setAttribute(
+            "aria-hidden",
+            "false"
+        );
+
+        setTimeout(
+            () => modalConfirmar.focus(),
+            50
+        );
     });
 }
 
@@ -82,99 +195,125 @@ function fecharConfirmacao(resultado) {
     }
 
     modalConfirmacao.classList.remove("ativo");
-    modalConfirmacao.setAttribute("aria-hidden", "true");
+
+    modalConfirmacao.setAttribute(
+        "aria-hidden",
+        "true"
+    );
 }
 
-modalCancelar.addEventListener("click", function () {
-    fecharConfirmacao(false);
-});
+modalCancelar.addEventListener(
+    "click",
+    () => fecharConfirmacao(false)
+);
 
-modalConfirmar.addEventListener("click", function () {
-    fecharConfirmacao(true);
-});
+modalConfirmar.addEventListener(
+    "click",
+    () => fecharConfirmacao(true)
+);
 
-modalConfirmacao.addEventListener("click", function (event) {
-    if (event.target === modalConfirmacao) {
-        fecharConfirmacao(false);
+modalConfirmacao.addEventListener(
+    "click",
+    event => {
+        if (event.target === modalConfirmacao) {
+            fecharConfirmacao(false);
+        }
     }
-});
+);
 
-document.addEventListener("keydown", function (event) {
-    if (event.key === "Escape" && modalConfirmacao.classList.contains("ativo")) {
-        fecharConfirmacao(false);
-    }
-});
-
-// ================================
+// ============================================================
 // CLIENTES
-// ================================
+// ============================================================
 
-let clientes = JSON.parse(
-    localStorage.getItem("clientes")
-) || [];
+let clientes =
+    JSON.parse(localStorage.getItem("clientes")) || [];
 
-const formularioCliente = document.querySelector("#form-cliente");
-const totalClientes = document.querySelector("#total-clientes");
-const listaClientes = document.querySelector("#lista-clientes");
-const clienteOrcamento = document.querySelector("#cliente-orcamento");
+let orcamentos =
+    JSON.parse(localStorage.getItem("orcamentos")) || [];
 
-formularioCliente.addEventListener("submit", function (event) {
+const formularioCliente =
+    document.querySelector("#form-cliente");
 
-    event.preventDefault();
+const totalClientes =
+    document.querySelector("#total-clientes");
 
-    const nome = document.querySelector("#nome").value;
-    const telefone = document.querySelector("#telefone").value;
-    const email = document.querySelector("#email").value;
+const listaClientes =
+    document.querySelector("#lista-clientes");
 
-    const cliente = {
-        nome: nome,
-        telefone: telefone,
-        email: email
-    };
+const clienteOrcamento =
+    document.querySelector("#cliente-orcamento");
 
-    clientes.push(cliente);
+formularioCliente.addEventListener(
+    "submit",
+    function (event) {
+        event.preventDefault();
 
-    localStorage.setItem(
-        "clientes",
-        JSON.stringify(clientes)
-    );
+        const cliente = {
+            nome: document
+                .querySelector("#nome")
+                .value
+                .trim(),
 
-    atualizarClientes();
+            telefone: document
+                .querySelector("#telefone")
+                .value
+                .trim(),
 
-    formularioCliente.reset();
+            email: document
+                .querySelector("#email")
+                .value
+                .trim()
+        };
 
-    alert("Cliente cadastrado com sucesso!");
+        if (!cliente.nome || !cliente.telefone) {
+            alert(
+                "Preencha o nome e o telefone do cliente."
+            );
+            return;
+        }
 
-});
+        clientes.push(cliente);
 
+        localStorage.setItem(
+            "clientes",
+            JSON.stringify(clientes)
+        );
+
+        atualizarClientes();
+
+        formularioCliente.reset();
+
+        alert(
+            "Cliente cadastrado com sucesso!"
+        );
+    }
+);
 
 function atualizarClientes() {
-
     totalClientes.textContent = clientes.length;
 
     listaClientes.innerHTML = "";
 
-    clienteOrcamento.innerHTML = `
-        <option value="">
-            Selecione um cliente
-        </option>
-    `;
+    clienteOrcamento.innerHTML =
+        `<option value="">Selecione um cliente</option>`;
 
     clientes.forEach(function (cliente, index) {
-
-        const linha = document.createElement("tr");
+        const linha =
+            document.createElement("tr");
 
         linha.innerHTML = `
-            <td>${cliente.nome}</td>
+            <td>${escaparHTML(cliente.nome)}</td>
 
-            <td>${cliente.telefone}</td>
+            <td>${escaparHTML(
+                cliente.telefone
+            )}</td>
 
-            <td>${cliente.email || "Não informado"}</td>
+            <td>${escaparHTML(
+                cliente.email || "Não informado"
+            )}</td>
 
             <td>
-
                 <div class="acoes">
-
                     <button
                         class="btn-editar"
                         onclick="editarCliente(${index})"
@@ -188,39 +327,35 @@ function atualizarClientes() {
                     >
                         Excluir
                     </button>
-
                 </div>
-
             </td>
         `;
 
         listaClientes.appendChild(linha);
 
-        const opcao = document.createElement("option");
+        const opcao =
+            document.createElement("option");
 
         opcao.value = index;
-
         opcao.textContent = cliente.nome;
 
         clienteOrcamento.appendChild(opcao);
-
     });
-
 }
 
-
 function editarCliente(index) {
-
     const cliente = clientes[index];
 
+    if (!cliente) return;
+
     document.querySelector("#nome").value =
-        cliente.nome;
+        cliente.nome || "";
 
     document.querySelector("#telefone").value =
-        cliente.telefone;
+        cliente.telefone || "";
 
     document.querySelector("#email").value =
-        cliente.email;
+        cliente.email || "";
 
     clientes.splice(index, 1);
 
@@ -231,96 +366,147 @@ function editarCliente(index) {
 
     atualizarClientes();
 
-}
+    window.scrollTo({
+        top:
+            document.querySelector(".clientes")
+                .offsetTop - 20,
 
+        behavior: "smooth"
+    });
+}
 
 async function excluirCliente(index) {
+    const confirmar =
+        await mostrarConfirmacao(
+            "Tem certeza que deseja excluir este cliente?",
+            "Excluir cliente?",
+            "Excluir"
+        );
 
-    const confirmar = await mostrarConfirmacao(
-        "Tem certeza que deseja excluir este cliente?",
-        "Excluir cliente?",
-        "Excluir"
+    if (!confirmar) return;
+
+    clientes.splice(index, 1);
+
+    localStorage.setItem(
+        "clientes",
+        JSON.stringify(clientes)
     );
 
-    if (confirmar) {
+    atualizarClientes();
 
-        clientes.splice(index, 1);
-
-        localStorage.setItem(
-            "clientes",
-            JSON.stringify(clientes)
-        );
-
-        atualizarClientes();
-
-        alert(
-            "Cliente excluído com sucesso!"
-        );
-
-    }
-
+    alert(
+        "Cliente excluído com sucesso!"
+    );
 }
 
+// ============================================================
+// NOVO ORÇAMENTO - AMBIENTES
+// ============================================================
 
+let ambientesOrcamento = [];
+let itensAmbienteRascunho = [];
 
-// ================================
-// ORÇAMENTOS
-// ================================
+const formularioItemAmbiente =
+    document.querySelector(
+        "#form-item-ambiente"
+    );
 
-let itensOrcamento = [];
+const listaItensAmbienteRascunho =
+    document.querySelector(
+        "#itens-ambiente-rascunho"
+    );
 
-let orcamentos = JSON.parse(
-    localStorage.getItem("orcamentos")
-) || [];
-
-const formularioOrcamento =
-    document.querySelector("#form-orcamento");
-
-const listaItens =
-    document.querySelector("#lista-itens");
+const listaAmbientes =
+    document.querySelector(
+        "#lista-ambientes"
+    );
 
 const valorTotal =
     document.querySelector("#valor-total");
 
+const unidadeCampo =
+    document.querySelector("#unidade");
+
+const campoQuantidade =
+    document.querySelector("#campo-quantidade");
+
+const btnLimparItem =
+    document.querySelector(
+        "#btn-limpar-item"
+    );
+
+const btnAdicionarAmbiente =
+    document.querySelector(
+        "#btn-adicionar-ambiente"
+    );
+
 const btnFinalizar =
-    document.querySelector("#btn-finalizar-orcamento");
+    document.querySelector(
+        "#btn-finalizar-orcamento"
+    );
 
-const totalOrcamentos =
-    document.querySelector("#total-orcamentos");
+function atualizarCampoQuantidade() {
+    const empreitada =
+        unidadeCampo.value === "empreitada";
 
-const listaOrcamentos =
-    document.querySelector("#lista-orcamentos");
+    campoQuantidade.style.display =
+        empreitada ? "none" : "block";
 
-const totalPendentes =
-    document.querySelector("#total-pendentes");
+    if (empreitada) {
+        document.querySelector(
+            "#quantidade"
+        ).value = 1;
+    }
+}
 
-const totalAprovados =
-    document.querySelector("#total-aprovados");
+unidadeCampo.addEventListener(
+    "change",
+    atualizarCampoQuantidade
+);
 
-const totalRecusados =
-    document.querySelector("#total-recusados");
+function limparFormularioItem() {
+    document.querySelector(
+        "#descricao-item"
+    ).value = "";
 
+    document.querySelector(
+        "#unidade"
+    ).value = "empreitada";
 
+    document.querySelector(
+        "#quantidade"
+    ).value = 1;
 
-// ================================
-// ADICIONAR ITEM
-// ================================
+    document.querySelector(
+        "#valor"
+    ).value = "";
 
-formularioOrcamento.addEventListener(
+    document.querySelector(
+        "#especificacoes-item"
+    ).value = "";
+
+    atualizarCampoQuantidade();
+}
+
+btnLimparItem.addEventListener(
+    "click",
+    limparFormularioItem
+);
+
+formularioItemAmbiente.addEventListener(
     "submit",
     function (event) {
-
         event.preventDefault();
 
-        const cliente =
+        const nomeAmbiente =
             document.querySelector(
-                "#cliente-orcamento"
-            ).value;
+                "#nome-ambiente"
+            ).value.trim();
 
         const descricao =
             document.querySelector(
-                "#descricao"
-            ).value;
+                "#descricao-item"
+            ).value.trim();
 
         const unidade =
             document.querySelector(
@@ -331,7 +517,7 @@ formularioOrcamento.addEventListener(
             Number(
                 document.querySelector(
                     "#quantidade"
-                ).value
+                ).value || 1
             );
 
         const valor =
@@ -341,178 +527,661 @@ formularioOrcamento.addEventListener(
                 ).value
             );
 
-        if (cliente === "") {
+        const especificacoes =
+            document.querySelector(
+                "#especificacoes-item"
+            ).value.trim();
 
+        if (!nomeAmbiente) {
             alert(
-                "Selecione um cliente."
+                "Informe o nome do ambiente."
+            );
+            return;
+        }
+
+        // Para Empreitada, "Empreitada" pode ser
+        // usada como descrição automaticamente.
+        const descricaoFinal =
+            descricao ||
+            (
+                unidade === "empreitada"
+                    ? "Empreitada"
+                    : ""
             );
 
+        if (!descricaoFinal) {
+            alert(
+                "Informe o serviço ou descrição do item."
+            );
+            return;
+        }
+
+        if (
+            !Number.isFinite(valor) ||
+            valor < 0
+        ) {
+            alert(
+                "Informe um valor válido."
+            );
+            return;
+        }
+
+        if (
+            unidade !== "empreitada" &&
+            (
+                !Number.isFinite(quantidade) ||
+                quantidade <= 0
+            )
+        ) {
+            alert(
+                "Informe uma quantidade válida."
+            );
             return;
         }
 
         const item = {
+            descricao: descricaoFinal,
+            unidade,
 
-            cliente: cliente,
+            quantidade:
+                unidade === "empreitada"
+                    ? 1
+                    : quantidade,
 
-            descricao: descricao,
+            valor,
 
-            unidade: unidade,
+            especificacoes,
 
-            quantidade: quantidade,
-
-            valor: valor,
-
-            total: quantidade * valor
-
+            total:
+                unidade === "empreitada"
+                    ? valor
+                    : quantidade * valor
         };
 
-        itensOrcamento.push(item);
+        itensAmbienteRascunho.push(item);
 
-        atualizarItens();
+        renderizarItensAmbienteRascunho();
 
-        document.querySelector(
-            "#descricao"
-        ).value = "";
-
-        document.querySelector(
-            "#unidade"
-        ).value = "un";
-
-        document.querySelector(
-            "#quantidade"
-        ).value = 1;
-
-        document.querySelector(
-            "#valor"
-        ).value = "";
-
+        limparFormularioItem();
     }
 );
 
+function renderizarItensAmbienteRascunho() {
+    if (!itensAmbienteRascunho.length) {
+        listaItensAmbienteRascunho.innerHTML =
+            "";
 
+        return;
+    }
 
-// ================================
-// ATUALIZAR ITENS
-// ================================
+    const nomeAmbiente =
+        document
+            .querySelector("#nome-ambiente")
+            .value
+            .trim() ||
+        "Ambiente atual";
 
-function atualizarItens() {
+    listaItensAmbienteRascunho.innerHTML = `
+        <div class="ambiente-rascunho">
 
-    listaItens.innerHTML = "";
+            <div class="ambiente-cabecalho">
+                <div>
+                    <strong>
+                        ${escaparHTML(nomeAmbiente)}
+                    </strong>
 
-    let total = 0;
+                    <small>
+                        ${
+                            itensAmbienteRascunho.length
+                        }
+                        item(ns) aguardando
+                        adição ao orçamento
+                    </small>
+                </div>
 
-    itensOrcamento.forEach(
-        function (item, index) {
+                <div class="ambiente-subtotal">
+                    ${
+                        formatarMoeda(
+                            itensAmbienteRascunho.reduce(
+                                (soma, item) =>
+                                    soma + item.total,
+                                0
+                            )
+                        )
+                    }
+                </div>
+            </div>
 
-            total += item.total;
+            <div class="lista-itens-ambiente">
 
-            const linha =
-                document.createElement("tr");
+                <table class="mini-tabela">
 
-            linha.innerHTML = `
-                <td>${item.descricao}</td>
+                    <thead>
+                        <tr>
+                            <th>Serviço</th>
+                            <th>Cobrança</th>
+                            <th>Qtd.</th>
+                            <th>Valor</th>
+                            <th>Total</th>
+                            <th></th>
+                        </tr>
+                    </thead>
 
-                <td>${item.unidade || "un"}</td>
+                    <tbody>
 
-                <td>${item.quantidade}</td>
+                        ${
+                            itensAmbienteRascunho
+                                .map(
+                                    (item, index) => `
+                            <tr>
 
-                <td>
-                    ${formatarMoeda(item.valor)}
-                </td>
+                                <td>
+                                    ${escaparHTML(
+                                        item.descricao
+                                    )}
 
-                <td>
-                    ${formatarMoeda(item.total)}
-                </td>
+                                    ${
+                                        item.especificacoes
+                                            ? `
+                                        <br>
+                                        <small>
+                                            ${textoComQuebra(
+                                                item.especificacoes
+                                            )}
+                                        </small>
+                                    `
+                                            : ""
+                                    }
+                                </td>
 
-                <td>
+                                <td>
+                                    ${escaparHTML(
+                                        item.unidade
+                                    )}
+                                </td>
 
-                    <button
-                        class="btn-excluir"
-                        onclick="excluirItem(${index})"
-                    >
-                        Excluir
-                    </button>
+                                <td>
+                                    ${
+                                        item.unidade ===
+                                        "empreitada"
+                                            ? "—"
+                                            : item.quantidade
+                                    }
+                                </td>
 
-                </td>
-            `;
+                                <td>
+                                    ${formatarMoeda(
+                                        item.valor
+                                    )}
+                                </td>
 
-            listaItens.appendChild(linha);
+                                <td>
+                                    ${formatarMoeda(
+                                        item.total
+                                    )}
+                                </td>
 
-        }
-    );
+                                <td>
+                                    <button
+                                        type="button"
+                                        class="btn-excluir"
+                                        onclick="excluirItemRascunho(${index})"
+                                    >
+                                        Excluir
+                                    </button>
+                                </td>
 
-    valorTotal.textContent =
-        formatarMoeda(total);
+                            </tr>
+                        `
+                                )
+                                .join("")
+                        }
 
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+    `;
 }
 
-
-function excluirItem(index) {
-
-    itensOrcamento.splice(
+function excluirItemRascunho(index) {
+    itensAmbienteRascunho.splice(
         index,
         1
     );
 
-    atualizarItens();
-
+    renderizarItensAmbienteRascunho();
 }
 
+// Se o usuário alterar o nome depois de
+// adicionar itens, o rascunho acompanha o nome.
+document
+    .querySelector("#nome-ambiente")
+    .addEventListener(
+        "input",
+        renderizarItensAmbienteRascunho
+    );
 
+btnAdicionarAmbiente.addEventListener(
+    "click",
+    function () {
+        const nome =
+            document
+                .querySelector("#nome-ambiente")
+                .value
+                .trim();
 
-// ================================
-// FINALIZAR ORÇAMENTO
-// ================================
+        if (!nome) {
+            alert(
+                "Informe o nome do ambiente."
+            );
+            return;
+        }
+
+        if (!itensAmbienteRascunho.length) {
+            alert(
+                "Adicione pelo menos um item ao ambiente antes de salvá-lo."
+            );
+            return;
+        }
+
+        const ambiente = {
+            nome,
+
+            itens:
+                itensAmbienteRascunho.map(
+                    item => ({ ...item })
+                ),
+
+            total:
+                itensAmbienteRascunho.reduce(
+                    (soma, item) =>
+                        soma + item.total,
+                    0
+                )
+        };
+
+        ambientesOrcamento.push(
+            ambiente
+        );
+
+        itensAmbienteRascunho = [];
+
+        document.querySelector(
+            "#nome-ambiente"
+        ).value = "";
+
+        limparFormularioItem();
+
+        renderizarItensAmbienteRascunho();
+        renderizarAmbientes();
+    }
+);
+
+function renderizarAmbientes() {
+    if (!ambientesOrcamento.length) {
+        listaAmbientes.innerHTML =
+            `<div class="sem-ambientes">
+                Nenhum ambiente adicionado ainda.
+            </div>`;
+
+        atualizarTotalTela();
+
+        return;
+    }
+
+    listaAmbientes.innerHTML =
+        ambientesOrcamento
+            .map(
+                (
+                    ambiente,
+                    ambienteIndex
+                ) => {
+                    const total =
+                        calcularTotalAmbiente(
+                            ambiente
+                        );
+
+                    return `
+            <div class="ambiente-card">
+
+                <div class="ambiente-cabecalho">
+
+                    <div>
+                        <strong>
+                            ${escaparHTML(
+                                ambiente.nome
+                            )}
+                        </strong>
+
+                        <small>
+                            ${
+                                ambiente.itens.length
+                            }
+                            item(ns)
+                        </small>
+                    </div>
+
+                    <div class="ambiente-subtotal">
+                        Subtotal:
+                        ${formatarMoeda(total)}
+                    </div>
+
+                </div>
+
+                <div class="lista-itens-ambiente">
+
+                    <table class="mini-tabela">
+
+                        <thead>
+                            <tr>
+                                <th>Serviço</th>
+                                <th>Cobrança</th>
+                                <th>Qtd.</th>
+                                <th>Valor</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                            ${
+                                ambiente.itens
+                                    .map(
+                                        item => `
+                                <tr>
+
+                                    <td>
+                                        ${escaparHTML(
+                                            item.descricao
+                                        )}
+
+                                        ${
+                                            item.especificacoes
+                                                ? `
+                                            <br>
+                                            <small>
+                                                ${textoComQuebra(
+                                                    item.especificacoes
+                                                )}
+                                            </small>
+                                        `
+                                                : ""
+                                        }
+                                    </td>
+
+                                    <td>
+                                        ${escaparHTML(
+                                            item.unidade
+                                        )}
+                                    </td>
+
+                                    <td>
+                                        ${
+                                            item.unidade ===
+                                            "empreitada"
+                                                ? "—"
+                                                : item.quantidade
+                                        }
+                                    </td>
+
+                                    <td>
+                                        ${formatarMoeda(
+                                            item.valor
+                                        )}
+                                    </td>
+
+                                    <td>
+                                        ${formatarMoeda(
+                                            item.total
+                                        )}
+                                    </td>
+
+                                </tr>
+                            `
+                                    )
+                                    .join("")
+                            }
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+                <div class="acoes-ambiente">
+
+                    <button
+                        type="button"
+                        class="btn-excluir"
+                        onclick="excluirAmbiente(${ambienteIndex})"
+                    >
+                        Excluir ambiente
+                    </button>
+
+                </div>
+
+            </div>
+        `;
+                }
+            )
+            .join("");
+
+    atualizarTotalTela();
+}
+
+async function excluirAmbiente(index) {
+    const ambiente =
+        ambientesOrcamento[index];
+
+    if (!ambiente) return;
+
+    const confirmar =
+        await mostrarConfirmacao(
+            `Excluir o ambiente "${ambiente.nome}" e todos os seus itens?`,
+            "Excluir ambiente?",
+            "Excluir"
+        );
+
+    if (!confirmar) return;
+
+    ambientesOrcamento.splice(
+        index,
+        1
+    );
+
+    renderizarAmbientes();
+}
+
+function atualizarTotalTela() {
+    const total =
+        ambientesOrcamento.reduce(
+            (soma, ambiente) =>
+                soma +
+                calcularTotalAmbiente(
+                    ambiente
+                ),
+            0
+        );
+
+    valorTotal.textContent =
+        formatarMoeda(total);
+}
+
+function limparFormularioOrcamento() {
+    ambientesOrcamento = [];
+    itensAmbienteRascunho = [];
+
+    document.querySelector(
+        "#cliente-orcamento"
+    ).value = "";
+
+    document.querySelector(
+        "#tipo-orcamento"
+    ).value = "";
+
+    document.querySelector(
+        "#descricao-geral"
+    ).value = "";
+
+    document.querySelector(
+        "#forma-pagamento"
+    ).value = "";
+
+    document.querySelector(
+        "#prazo-execucao"
+    ).value = "";
+
+    document.querySelector(
+        "#especificacoes-gerais"
+    ).value = "";
+
+    document.querySelector(
+        "#observacoes"
+    ).value = "";
+
+    document.querySelector(
+        "#nome-ambiente"
+    ).value = "";
+
+    limparFormularioItem();
+
+    renderizarItensAmbienteRascunho();
+    renderizarAmbientes();
+}
 
 btnFinalizar.addEventListener(
     "click",
     function () {
-
-        if (itensOrcamento.length === 0) {
-
-            alert(
-                "Adicione pelo menos um item ao orçamento."
-            );
-
-            return;
-        }
-
         const clienteIndex =
             document.querySelector(
                 "#cliente-orcamento"
             ).value;
 
         if (clienteIndex === "") {
-
             alert(
                 "Selecione um cliente."
             );
+            return;
+        }
 
+        if (!ambientesOrcamento.length) {
+            alert(
+                "Adicione pelo menos um ambiente ao orçamento."
+            );
+            return;
+        }
+
+        if (itensAmbienteRascunho.length) {
+            alert(
+                "Você adicionou itens a um ambiente, mas ainda não salvou esse ambiente. Clique em 'Adicionar ambiente ao orçamento'."
+            );
             return;
         }
 
         const cliente =
-            clientes[clienteIndex];
+            clientes[
+                Number(clienteIndex)
+            ];
 
-        let total = 0;
+        if (!cliente) {
+            alert(
+                "Cliente não encontrado."
+            );
+            return;
+        }
 
-        itensOrcamento.forEach(
-            function (item) {
-
-                total += item.total;
-
-            }
-        );
+        const total =
+            ambientesOrcamento.reduce(
+                (soma, ambiente) =>
+                    soma +
+                    calcularTotalAmbiente(
+                        ambiente
+                    ),
+                0
+            );
 
         const orcamento = {
+            cliente: {
+                ...cliente
+            },
 
-            cliente: cliente,
+            tipoOrcamento:
+                document
+                    .querySelector(
+                        "#tipo-orcamento"
+                    )
+                    .value
+                    .trim(),
 
-            itens: [
-                ...itensOrcamento
-            ],
+            descricaoGeral:
+                document
+                    .querySelector(
+                        "#descricao-geral"
+                    )
+                    .value
+                    .trim(),
 
-            total: total,
+            ambientes:
+                ambientesOrcamento.map(
+                    ambiente => ({
+                        nome:
+                            ambiente.nome,
+
+                        itens:
+                            ambiente.itens.map(
+                                item => ({
+                                    ...item,
+                                    total:
+                                        calcularTotalItem(
+                                            item
+                                        )
+                                })
+                            ),
+
+                        total:
+                            calcularTotalAmbiente(
+                                ambiente
+                            )
+                    })
+                ),
+
+            especificacoesGerais:
+                document
+                    .querySelector(
+                        "#especificacoes-gerais"
+                    )
+                    .value
+                    .trim(),
+
+            formaPagamento:
+                document
+                    .querySelector(
+                        "#forma-pagamento"
+                    )
+                    .value
+                    .trim(),
+
+            prazoExecucao:
+                document
+                    .querySelector(
+                        "#prazo-execucao"
+                    )
+                    .value
+                    .trim(),
+
+            observacoes:
+                document
+                    .querySelector(
+                        "#observacoes"
+                    )
+                    .value
+                    .trim(),
+
+            total,
 
             status: "Pendente",
 
@@ -520,68 +1189,102 @@ btnFinalizar.addEventListener(
                 new Date().toLocaleDateString(
                     "pt-BR"
                 )
-
         };
 
         orcamentos.push(
             orcamento
         );
 
-        localStorage.setItem(
-            "orcamentos",
-            JSON.stringify(orcamentos)
-        );
-
+        salvarOrcamentos();
         atualizarHistorico();
-
         atualizarContadores();
 
-        itensOrcamento = [];
-
-        atualizarItens();
-
-        document.querySelector(
-            "#cliente-orcamento"
-        ).value = "";
+        limparFormularioOrcamento();
 
         alert(
             "Orçamento finalizado com sucesso!"
         );
-
     }
 );
 
-
-
-// ================================
+// ============================================================
 // HISTÓRICO
-// ================================
+// ============================================================
+
+const totalOrcamentos =
+    document.querySelector(
+        "#total-orcamentos"
+    );
+
+const listaOrcamentos =
+    document.querySelector(
+        "#lista-orcamentos"
+    );
+
+const totalPendentes =
+    document.querySelector(
+        "#total-pendentes"
+    );
+
+const totalAprovados =
+    document.querySelector(
+        "#total-aprovados"
+    );
+
+const totalRecusados =
+    document.querySelector(
+        "#total-recusados"
+    );
 
 function atualizarHistorico() {
-
     listaOrcamentos.innerHTML = "";
 
     orcamentos.forEach(
         function (orcamento, index) {
+            const totalAtual =
+                calcularTotalOrcamento(
+                    orcamento
+                );
+
+            orcamento.total =
+                totalAtual;
+
+            const clienteNome =
+                orcamento.cliente?.nome ||
+                "Cliente não informado";
 
             const linha =
                 document.createElement("tr");
 
             linha.innerHTML = `
                 <td>
-                    ${orcamento.cliente.nome}
+                    ${escaparHTML(
+                        clienteNome
+                    )}
                 </td>
 
                 <td>
-                    ${orcamento.data}
+                    ${escaparHTML(
+                        orcamento.data || "—"
+                    )}
                 </td>
 
                 <td>
-                    ${formatarMoeda(orcamento.total)}
+                    ${formatarMoeda(
+                        totalAtual
+                    )}
                 </td>
 
-                <td class="status-${orcamento.status.toLowerCase()}">
-                    ${orcamento.status}
+                <td
+                    class="status-${String(
+                        orcamento.status ||
+                        "Pendente"
+                    ).toLowerCase()}"
+                >
+                    ${escaparHTML(
+                        orcamento.status ||
+                        "Pendente"
+                    )}
                 </td>
 
                 <td>
@@ -628,877 +1331,453 @@ function atualizarHistorico() {
                 </td>
             `;
 
-            listaOrcamentos.appendChild(linha);
-
+            listaOrcamentos.appendChild(
+                linha
+            );
         }
     );
 
+    salvarOrcamentos();
 }
 
-
-
-// ================================
-// ALTERAR STATUS
-// ================================
-
 function alterarStatus(index) {
-
     const orcamento =
         orcamentos[index];
 
-    let novoStatus;
+    if (!orcamento) return;
 
-    if (orcamento.status === "Pendente") {
-
-        novoStatus = "Aprovado";
-
-    } else if (orcamento.status === "Aprovado") {
-
-        novoStatus = "Recusado";
-
+    if (
+        orcamento.status ===
+        "Pendente"
+    ) {
+        orcamento.status =
+            "Aprovado";
+    } else if (
+        orcamento.status ===
+        "Aprovado"
+    ) {
+        orcamento.status =
+            "Recusado";
     } else {
-
-        novoStatus = "Pendente";
-
+        orcamento.status =
+            "Pendente";
     }
 
-    orcamento.status =
-        novoStatus;
-
-    localStorage.setItem(
-        "orcamentos",
-        JSON.stringify(orcamentos)
-    );
+    salvarOrcamentos();
 
     atualizarHistorico();
-
     atualizarContadores();
-
 }
 
-
-
-// ================================
-// CONTADORES
-// ================================
-
 function atualizarContadores() {
-
     totalOrcamentos.textContent =
         orcamentos.length;
 
-    const pendentes =
-        orcamentos.filter(
-            function (orcamento) {
-
-                return (
-                    orcamento.status ===
-                    "Pendente"
-                );
-
-            }
-        );
-
-    const aprovados =
-        orcamentos.filter(
-            function (orcamento) {
-
-                return (
-                    orcamento.status ===
-                    "Aprovado"
-                );
-
-            }
-        );
-
-    const recusados =
-        orcamentos.filter(
-            function (orcamento) {
-
-                return (
-                    orcamento.status ===
-                    "Recusado"
-                );
-
-            }
-        );
-
     totalPendentes.textContent =
-        pendentes.length;
+        orcamentos.filter(
+            o => o.status === "Pendente"
+        ).length;
 
     totalAprovados.textContent =
-        aprovados.length;
+        orcamentos.filter(
+            o => o.status === "Aprovado"
+        ).length;
 
     totalRecusados.textContent =
-        recusados.length;
-
+        orcamentos.filter(
+            o => o.status === "Recusado"
+        ).length;
 }
 
-
-
-// ================================
+// ============================================================
 // VISUALIZAR ORÇAMENTO
-// ================================
+// ============================================================
+
+const modalVisualizacao =
+    document.querySelector(
+        "#modal-visualizacao"
+    );
+
+const visualizacaoTitulo =
+    document.querySelector(
+        "#visualizacao-titulo"
+    );
+
+const visualizacaoSubtitulo =
+    document.querySelector(
+        "#visualizacao-subtitulo"
+    );
+
+const visualizacaoConteudo =
+    document.querySelector(
+        "#visualizacao-conteudo"
+    );
+
+const fecharVisualizacao =
+    document.querySelector(
+        "#fechar-visualizacao"
+    );
+
+function abrirVisualizacao() {
+    modalVisualizacao.classList.add(
+        "ativo"
+    );
+
+    modalVisualizacao.setAttribute(
+        "aria-hidden",
+        "false"
+    );
+}
+
+function fecharModalVisualizacao() {
+    modalVisualizacao.classList.remove(
+        "ativo"
+    );
+
+    modalVisualizacao.setAttribute(
+        "aria-hidden",
+        "true"
+    );
+}
+
+fecharVisualizacao.addEventListener(
+    "click",
+    fecharModalVisualizacao
+);
+
+modalVisualizacao.addEventListener(
+    "click",
+    event => {
+        if (
+            event.target ===
+            modalVisualizacao
+        ) {
+            fecharModalVisualizacao();
+        }
+    }
+);
+
+document.addEventListener(
+    "keydown",
+    event => {
+        if (event.key === "Escape") {
+            if (
+                modalVisualizacao.classList.contains(
+                    "ativo"
+                )
+            ) {
+                fecharModalVisualizacao();
+            }
+
+            if (
+                modalConfirmacao.classList.contains(
+                    "ativo"
+                )
+            ) {
+                fecharConfirmacao(false);
+            }
+        }
+    }
+);
 
 function visualizarOrcamento(index) {
-
     const orcamento =
         orcamentos[index];
 
-    let mensagem =
-        `ORÇAMENTO\n\n`;
+    if (!orcamento) return;
 
-    mensagem +=
-        `Cliente: ${orcamento.cliente.nome}\n`;
+    const ambientes =
+        obterAmbientes(
+            orcamento
+        );
 
-    mensagem +=
-        `Telefone: ${orcamento.cliente.telefone}\n`;
+    const total =
+        calcularTotalOrcamento(
+            orcamento
+        );
 
-    mensagem +=
-        `Data: ${orcamento.data}\n`;
+    visualizacaoTitulo.textContent =
+        `Orçamento Nº ${String(
+            index + 1
+        ).padStart(4, "0")}`;
 
-    mensagem +=
-        `Status: ${orcamento.status}\n\n`;
+    visualizacaoSubtitulo.textContent =
+        `${
+            orcamento.cliente?.nome ||
+            "Cliente não informado"
+        } • ${
+            orcamento.data || ""
+        } • ${
+            orcamento.status ||
+            "Pendente"
+        }`;
 
-    mensagem +=
-        `ITENS:\n\n`;
+    let html = "";
 
-    orcamento.itens.forEach(
-        function (item) {
+    if (orcamento.tipoOrcamento) {
+        html += `
+            <p>
+                <strong>Tipo:</strong>
+                ${escaparHTML(
+                    orcamento.tipoOrcamento
+                )}
+            </p>
+        `;
+    }
 
-            mensagem +=
-                `${item.descricao}\n`;
+    if (orcamento.descricaoGeral) {
+        html += `
+            <div>
+                <strong>
+                    Descrição geral
+                </strong>
 
-            mensagem +=
-                `Unidade: ${item.unidade || "un"}\n`;
+                <p>
+                    ${textoComQuebra(
+                        orcamento.descricaoGeral
+                    )}
+                </p>
+            </div>
+        `;
+    }
 
-            mensagem +=
-                `Quantidade: ${item.quantidade}\n`;
+    ambientes.forEach(
+        ambiente => {
+            html += `
+                <div class="visualizacao-ambiente">
 
-            mensagem +=
-                `Valor: ${formatarMoeda(item.valor)}\n`;
+                    <div class="ambiente-cabecalho">
 
-            mensagem +=
-                `Total: ${formatarMoeda(item.total)}\n\n`;
+                        <h4>
+                            ${escaparHTML(
+                                ambiente.nome
+                            )}
+                        </h4>
 
+                        <strong>
+                            ${formatarMoeda(
+                                calcularTotalAmbiente(
+                                    ambiente
+                                )
+                            )}
+                        </strong>
+
+                    </div>
+
+                    <div class="lista-itens-ambiente">
+
+                        <table class="mini-tabela">
+
+                            <thead>
+                                <tr>
+                                    <th>Serviço</th>
+                                    <th>Cobrança</th>
+                                    <th>Qtd.</th>
+                                    <th>Valor</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+
+                                ${
+                                    ambiente.itens
+                                        .map(
+                                            item => `
+                                    <tr>
+
+                                        <td>
+
+                                            ${escaparHTML(
+                                                item.descricao
+                                            )}
+
+                                            ${
+                                                item.especificacoes
+                                                    ? `
+                                                <br>
+                                                <small>
+                                                    ${textoComQuebra(
+                                                        item.especificacoes
+                                                    )}
+                                                </small>
+                                            `
+                                                    : ""
+                                            }
+
+                                        </td>
+
+                                        <td>
+                                            ${escaparHTML(
+                                                item.unidade
+                                            )}
+                                        </td>
+
+                                        <td>
+                                            ${
+                                                item.unidade ===
+                                                "empreitada"
+                                                    ? "—"
+                                                    : item.quantidade
+                                            }
+                                        </td>
+
+                                        <td>
+                                            ${formatarMoeda(
+                                                item.valor
+                                            )}
+                                        </td>
+
+                                        <td>
+                                            ${formatarMoeda(
+                                                calcularTotalItem(
+                                                    item
+                                                )
+                                            )}
+                                        </td>
+
+                                    </tr>
+                                `
+                                        )
+                                        .join("")
+                                }
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+            `;
         }
     );
 
-    mensagem +=
-        `TOTAL: ${formatarMoeda(orcamento.total)}`;
+    const extras = [
+        [
+            "Forma de pagamento",
+            orcamento.formaPagamento
+        ],
 
-    alert(mensagem);
+        [
+            "Prazo de execução",
+            orcamento.prazoExecucao
+        ],
 
+        [
+            "Especificações gerais",
+            orcamento.especificacoesGerais
+        ],
+
+        [
+            "Observações",
+            orcamento.observacoes
+        ]
+    ];
+
+    extras.forEach(
+        ([titulo, valor]) => {
+            if (valor) {
+                html += `
+                    <div
+                        style="margin:14px 0;"
+                    >
+                        <strong>
+                            ${titulo}
+                        </strong>
+
+                        <p>
+                            ${textoComQuebra(
+                                valor
+                            )}
+                        </p>
+                    </div>
+                `;
+            }
+        }
+    );
+
+    html += `
+        <div class="visualizacao-total">
+            <span>
+                Total geral
+            </span>
+
+            <strong>
+                ${formatarMoeda(total)}
+            </strong>
+        </div>
+    `;
+
+    visualizacaoConteudo.innerHTML =
+        html;
+
+    abrirVisualizacao();
 }
 
-
-
-// ================================
-// LOGO PARA O PDF
-// ================================
+// ============================================================
+// PDF
+// ============================================================
 
 let logoPDF = null;
 
 function carregarLogoPDF() {
-
-    return new Promise(function (resolve) {
-
-        if (logoPDF) {
-            resolve(logoPDF);
-            return;
-        }
-
-        const imagem = new Image();
-
-        imagem.onload = function () {
-
-            const canvas = document.createElement("canvas");
-            const contexto = canvas.getContext("2d");
-
-            canvas.width = imagem.naturalWidth;
-            canvas.height = imagem.naturalHeight;
-
-            contexto.drawImage(
-                imagem,
-                0,
-                0
-            );
-
-            logoPDF = canvas.toDataURL("image/png");
-
-            resolve(logoPDF);
-
-        };
-
-        imagem.onerror = function () {
-            resolve(null);
-        };
-
-        imagem.src = "logo.png";
-
-    });
-
-}
-
-
-// ================================
-// PDF PROFISSIONAL
-// ================================
-
-async function gerarPDF(index) {
-
-    const orcamento =
-        orcamentos[index];
-
-    const { jsPDF } =
-        window.jspdf;
-
-    const pdf =
-        new jsPDF();
-
-    const logo = await carregarLogoPDF();
-
-
-    // --------------------------------
-    // CONFIGURAÇÕES
-    // --------------------------------
-
-    const margem =
-        20;
-
-    const larguraPagina =
-        210;
-
-    const larguraConteudo =
-        170;
-
-
-    // --------------------------------
-    // CABEÇALHO
-    // --------------------------------
-
-    pdf.setFillColor(
-        17,
-        17,
-        17
-    );
-
-    pdf.rect(
-        0,
-        0,
-        larguraPagina,
-        42,
-        "F"
-    );
-
-
-    pdf.setTextColor(
-        255,
-        255,
-        255
-    );
-
-    if (logo) {
-
-        pdf.addImage(
-            logo,
-            "PNG",
-            margem,
-            4,
-            48,
-            32
-        );
-
-    }
-
-    pdf.setFont(
-        "helvetica",
-        "bold"
-    );
-
-    pdf.setFontSize(20);
-
-    pdf.text(
-        "ORÇAMENTO",
-        76,
-        19
-    );
-
-
-    pdf.setFont(
-        "helvetica",
-        "normal"
-    );
-
-    pdf.setFontSize(9);
-
-    pdf.text(
-        "LR MULTI SERVICES",
-        76,
-        29
-    );
-
-
-    // Número do orçamento
-
-    pdf.setFont(
-        "helvetica",
-        "bold"
-    );
-
-    pdf.setFontSize(11);
-
-    pdf.text(
-        `Nº ${String(index + 1).padStart(4, "0")}`,
-        160,
-        19
-    );
-
-
-    pdf.setFont(
-        "helvetica",
-        "normal"
-    );
-
-    pdf.setFontSize(9);
-
-    pdf.text(
-        `Data: ${orcamento.data}`,
-        160,
-        29
-    );
-
-
-    // Resetar cor
-
-    pdf.setTextColor(
-        0,
-        0,
-        0
-    );
-
-
-
-    // --------------------------------
-    // DADOS DO CLIENTE
-    // --------------------------------
-
-    pdf.setFont(
-        "helvetica",
-        "bold"
-    );
-
-    pdf.setFontSize(13);
-
-    pdf.text(
-        "DADOS DO CLIENTE",
-        margem,
-        60
-    );
-
-
-    pdf.setDrawColor(
-        220,
-        220,
-        220
-    );
-
-    pdf.line(
-        margem,
-        64,
-        190,
-        64
-    );
-
-
-    pdf.setFont(
-        "helvetica",
-        "bold"
-    );
-
-    pdf.setFontSize(10);
-
-    pdf.text(
-        "Nome",
-        margem,
-        76
-    );
-
-
-    pdf.setFont(
-        "helvetica",
-        "normal"
-    );
-
-    pdf.text(
-        orcamento.cliente.nome,
-        margem,
-        84
-    );
-
-
-    pdf.setFont(
-        "helvetica",
-        "bold"
-    );
-
-    pdf.text(
-        "Telefone",
-        105,
-        76
-    );
-
-
-    pdf.setFont(
-        "helvetica",
-        "normal"
-    );
-
-    pdf.text(
-        orcamento.cliente.telefone,
-        105,
-        84
-    );
-
-
-    pdf.setFont(
-        "helvetica",
-        "bold"
-    );
-
-    pdf.text(
-        "E-mail",
-        margem,
-        96
-    );
-
-
-    pdf.setFont(
-        "helvetica",
-        "normal"
-    );
-
-    pdf.text(
-        orcamento.cliente.email ||
-        "Não informado",
-        margem,
-        104
-    );
-
-
-
-    // --------------------------------
-    // SERVIÇOS
-    // --------------------------------
-
-    pdf.setFont(
-        "helvetica",
-        "bold"
-    );
-
-    pdf.setFontSize(13);
-
-    pdf.text(
-        "SERVIÇOS",
-        margem,
-        125
-    );
-
-
-    // Cabeçalho da tabela
-
-    pdf.setFillColor(
-        245,
-        245,
-        245
-    );
-
-    pdf.roundedRect(
-        margem,
-        132,
-        larguraConteudo,
-        12,
-        2,
-        2,
-        "F"
-    );
-
-
-    pdf.setFont(
-        "helvetica",
-        "bold"
-    );
-
-    pdf.setFontSize(9);
-
-
-    pdf.text(
-        "DESCRIÇÃO",
-        24,
-        140
-    );
-
-
-    pdf.text(
-        "UN.",
-        105,
-        140
-    );
-
-
-    pdf.text(
-        "QTD.",
-        119,
-        140
-    );
-
-
-    pdf.text(
-        "VALOR UNIT.",
-        136,
-        140
-    );
-
-
-    pdf.text(
-        "TOTAL",
-        175,
-        140
-    );
-
-
-    // --------------------------------
-    // ITENS
-    // --------------------------------
-
-    let y = 153;
-
-
-    orcamento.itens.forEach(
-        function (item, itemIndex) {
-
-            // Nova página
-            if (y > 260) {
-
-                adicionarCabecalhoPagina(
-                    pdf
-                );
-
-                y = 55;
-
+    return new Promise(
+        function (resolve) {
+            if (logoPDF) {
+                resolve(logoPDF);
+                return;
             }
 
+            const imagem =
+                new Image();
 
-            // Linha
+            imagem.onload =
+                function () {
+                    const canvas =
+                        document.createElement(
+                            "canvas"
+                        );
 
-            if (itemIndex % 2 === 0) {
+                    const contexto =
+                        canvas.getContext(
+                            "2d"
+                        );
 
-                pdf.setFillColor(
-                    250,
-                    250,
-                    250
-                );
+                    canvas.width =
+                        imagem.naturalWidth;
 
-                pdf.rect(
-                    margem,
-                    y - 7,
-                    larguraConteudo,
-                    11,
-                    "F"
-                );
+                    canvas.height =
+                        imagem.naturalHeight;
 
-            }
-
-
-            pdf.setTextColor(
-                40,
-                40,
-                40
-            );
-
-            pdf.setFont(
-                "helvetica",
-                "normal"
-            );
-
-            pdf.setFontSize(9);
-
-
-            let descricao =
-                item.descricao;
-
-
-            if (
-                descricao.length > 42
-            ) {
-
-                descricao =
-                    descricao.substring(
+                    contexto.drawImage(
+                        imagem,
                         0,
-                        42
-                    ) + "...";
+                        0
+                    );
 
-            }
+                    logoPDF =
+                        canvas.toDataURL(
+                            "image/png"
+                        );
 
+                    resolve(
+                        logoPDF
+                    );
+                };
 
-            pdf.text(
-                descricao,
-                24,
-                y
-            );
+            imagem.onerror =
+                () => resolve(null);
 
-
-            pdf.text(
-                item.unidade || "un",
-                105,
-                y
-            );
-
-
-            pdf.text(
-                String(item.quantidade),
-                119,
-                y
-            );
-
-
-            pdf.text(
-                formatarMoeda(
-                    item.valor
-                ),
-                136,
-                y
-            );
-
-
-            pdf.text(
-                formatarMoeda(
-                    item.total
-                ),
-                175,
-                y
-            );
-
-
-            y += 12;
-
+            imagem.src =
+                "logo.png";
         }
     );
-
-
-
-    // --------------------------------
-    // TOTAL
-    // --------------------------------
-
-    y += 8;
-
-
-    pdf.setDrawColor(
-        210,
-        210,
-        210
-    );
-
-    pdf.line(
-        margem,
-        y,
-        190,
-        y
-    );
-
-
-    y += 18;
-
-
-    pdf.setFont(
-        "helvetica",
-        "bold"
-    );
-
-    pdf.setFontSize(12);
-
-    pdf.text(
-        "TOTAL DO ORÇAMENTO",
-        105,
-        y
-    );
-
-
-    pdf.setFontSize(18);
-
-    pdf.text(
-        formatarMoeda(
-            orcamento.total
-        ),
-        160,
-        y
-    );
-
-
-
-    // --------------------------------
-    // STATUS
-    // --------------------------------
-
-    y += 18;
-
-
-    pdf.setFont(
-        "helvetica",
-        "bold"
-    );
-
-    pdf.setFontSize(10);
-
-    pdf.text(
-        "STATUS:",
-        margem,
-        y
-    );
-
-
-    pdf.setFont(
-        "helvetica",
-        "normal"
-    );
-
-    pdf.text(
-        orcamento.status,
-        42,
-        y
-    );
-
-
-
-    // --------------------------------
-    // OBSERVAÇÃO
-    // --------------------------------
-
-    y += 20;
-
-
-    pdf.setDrawColor(
-        230,
-        230,
-        230
-    );
-
-    pdf.line(
-        margem,
-        y,
-        190,
-        y
-    );
-
-
-    y += 12;
-
-
-    pdf.setFont(
-        "helvetica",
-        "bold"
-    );
-
-    pdf.setFontSize(10);
-
-    pdf.text(
-        "Observações",
-        margem,
-        y
-    );
-
-
-    pdf.setFont(
-        "helvetica",
-        "normal"
-    );
-
-    pdf.setFontSize(9);
-
-    pdf.text(
-        "Este orçamento está sujeito à confirmação das condições acordadas.",
-        margem,
-        y + 9
-    );
-
-
-
-    // --------------------------------
-    // RODAPÉ
-    // --------------------------------
-
-    adicionarRodape(
-        pdf
-    );
-
-
-    // --------------------------------
-    // SALVAR
-    // --------------------------------
-
-    pdf.save(
-        `orcamento-${String(index + 1).padStart(4, "0")}.pdf`
-    );
-
 }
 
-
-
-// ================================
-// ENVIAR PELO WHATSAPP
-// ================================
-
-async function enviarWhatsApp(index) {
-
-    const orcamento = orcamentos[index];
-
-    if (!orcamento || !orcamento.cliente) {
-        alert("Orçamento não encontrado.");
-        return;
-    }
-
-    const telefone = String(orcamento.cliente.telefone || "")
-        .replace(/\D/g, "");
-
-    if (!telefone) {
-        alert("Este cliente não possui telefone cadastrado.");
-        return;
-    }
-
-    // Abre a janela imediatamente para evitar bloqueio de pop-up.
-    const janela = window.open("about:blank", "_blank");
-
-    await gerarPDF(index);
-
-    const numero = telefone.startsWith("55")
-        ? telefone
-        : `55${telefone}`;
-
-    const mensagem =
-        `Olá, ${orcamento.cliente.nome}!\n\n` +
-        `Estou enviando o orçamento da LR MULTI SERVICES.\n` +
-        `Valor total: ${formatarMoeda(orcamento.total)}.\n\n` +
-        `O PDF do orçamento foi gerado.\n` +
-        `Nº ${String(index + 1).padStart(4, "0")}`;
-
-    const url =
-        `https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`;
-
-    if (janela) {
-        janela.location.href = url;
-    } else {
-        window.open(url, "_blank");
-    }
-}
-
-
-// ================================
-// CABEÇALHO DE NOVA PÁGINA
-// ================================
-
-function adicionarCabecalhoPagina(pdf) {
-
+function adicionarCabecalhoPagina(
+    pdf
+) {
     pdf.setFillColor(
         17,
         17,
@@ -1512,7 +1791,6 @@ function adicionarCabecalhoPagina(pdf) {
         32,
         "F"
     );
-
 
     pdf.setTextColor(
         255,
@@ -1533,33 +1811,22 @@ function adicionarCabecalhoPagina(pdf) {
         20
     );
 
-
     pdf.setTextColor(
         0,
         0,
         0
     );
-
 }
 
-
-
-// ================================
-// RODAPÉ
-// ================================
-
 function adicionarRodape(pdf) {
-
     const altura =
         pdf.internal.pageSize.getHeight();
-
 
     pdf.setDrawColor(
         220,
         220,
         220
     );
-
 
     pdf.line(
         20,
@@ -1568,7 +1835,6 @@ function adicionarRodape(pdf) {
         altura - 20
     );
 
-
     pdf.setFont(
         "helvetica",
         "normal"
@@ -1576,13 +1842,11 @@ function adicionarRodape(pdf) {
 
     pdf.setFontSize(8);
 
-
     pdf.setTextColor(
         120,
         120,
         120
     );
-
 
     pdf.text(
         "LR Multi Services • Orçamento de construção civil",
@@ -1590,13 +1854,163 @@ function adicionarRodape(pdf) {
         altura - 12
     );
 
-
     pdf.text(
-        `Página ${pdf.internal.getNumberOfPages()}`,
+        `Página ${
+            pdf.internal.getNumberOfPages()
+        }`,
         170,
         altura - 12
     );
 
+    pdf.setTextColor(
+        0,
+        0,
+        0
+    );
+}
+
+function textoPDFQuebrado(
+    pdf,
+    texto,
+    largura,
+    tamanho = 9
+) {
+    pdf.setFontSize(
+        tamanho
+    );
+
+    return pdf.splitTextToSize(
+        String(texto || ""),
+        largura
+    );
+}
+
+async function gerarPDF(index) {
+    const orcamento =
+        orcamentos[index];
+
+    if (!orcamento) {
+        alert(
+            "Orçamento não encontrado."
+        );
+        return;
+    }
+
+    if (!window.jspdf) {
+        alert(
+            "Não foi possível carregar o gerador de PDF. Verifique sua conexão e tente novamente."
+        );
+        return;
+    }
+
+    const {
+        jsPDF
+    } = window.jspdf;
+
+    const pdf =
+        new jsPDF();
+
+    const logo =
+        await carregarLogoPDF();
+
+    const margem = 20;
+    const larguraConteudo = 170;
+
+    const ambientes =
+        obterAmbientes(
+            orcamento
+        );
+
+    const totalGeral =
+        calcularTotalOrcamento(
+            orcamento
+        );
+
+    // Cabeçalho
+    pdf.setFillColor(
+        17,
+        17,
+        17
+    );
+
+    pdf.rect(
+        0,
+        0,
+        210,
+        44,
+        "F"
+    );
+
+    pdf.setTextColor(
+        255,
+        255,
+        255
+    );
+
+    if (logo) {
+        pdf.addImage(
+            logo,
+            "PNG",
+            margem,
+            5,
+            45,
+            30
+        );
+    }
+
+    pdf.setFont(
+        "helvetica",
+        "bold"
+    );
+
+    pdf.setFontSize(19);
+
+    pdf.text(
+        "ORÇAMENTO",
+        75,
+        19
+    );
+
+    pdf.setFont(
+        "helvetica",
+        "normal"
+    );
+
+    pdf.setFontSize(9);
+
+    pdf.text(
+        "LR MULTI SERVICES",
+        75,
+        29
+    );
+
+    pdf.setFont(
+        "helvetica",
+        "bold"
+    );
+
+    pdf.setFontSize(10);
+
+    pdf.text(
+        `Nº ${String(
+            index + 1
+        ).padStart(4, "0")}`,
+        158,
+        18
+    );
+
+    pdf.setFont(
+        "helvetica",
+        "normal"
+    );
+
+    pdf.text(
+        `Data: ${
+            orcamento.data || ""
+        }`,
+        158,
+        28
+    );
 
     pdf.setTextColor(
         0,
@@ -1604,75 +2018,751 @@ function adicionarRodape(pdf) {
         0
     );
 
-}
+    let y = 60;
 
+    function garantirEspaco(
+        necessario = 20
+    ) {
+        if (
+            y + necessario >
+            275
+        ) {
+            adicionarRodape(
+                pdf
+            );
 
+            pdf.addPage();
 
-// ================================
-// EXCLUIR ORÇAMENTO
-// ================================
+            adicionarCabecalhoPagina(
+                pdf
+            );
 
-async function excluirOrcamento(index) {
-
-    const confirmar = await mostrarConfirmacao(
-        "Tem certeza que deseja excluir este orçamento?",
-        "Excluir orçamento?",
-        "Excluir"
-    );
-
-    if (confirmar) {
-
-        orcamentos.splice(
-            index,
-            1
-        );
-
-
-        localStorage.setItem(
-            "orcamentos",
-            JSON.stringify(orcamentos)
-        );
-
-
-        atualizarHistorico();
-
-        atualizarContadores();
-
-
-        alert(
-            "Orçamento excluído com sucesso!"
-        );
-
+            y = 48;
+        }
     }
 
-}
+    function adicionarTitulo(
+        titulo
+    ) {
+        garantirEspaco(
+            16
+        );
 
+        pdf.setFont(
+            "helvetica",
+            "bold"
+        );
 
+        pdf.setFontSize(
+            12
+        );
 
-// ================================
-// FORMATAÇÃO DE MOEDA
-// ================================
+        pdf.setTextColor(
+            25,
+            25,
+            25
+        );
 
-function formatarMoeda(valor) {
+        pdf.text(
+            titulo,
+            margem,
+            y
+        );
 
-    return valor.toLocaleString(
-        "pt-BR",
-        {
-            style: "currency",
-            currency: "BRL"
-        }
+        y += 7;
+
+        pdf.setDrawColor(
+            225,
+            225,
+            225
+        );
+
+        pdf.line(
+            margem,
+            y,
+            190,
+            y
+        );
+
+        y += 8;
+    }
+
+    // Cliente
+    adicionarTitulo(
+        "DADOS DO CLIENTE"
     );
 
+    pdf.setFont(
+        "helvetica",
+        "bold"
+    );
+
+    pdf.setFontSize(9);
+
+    pdf.text(
+        "Nome",
+        margem,
+        y
+    );
+
+    pdf.text(
+        "Telefone",
+        105,
+        y
+    );
+
+    y += 6;
+
+    pdf.setFont(
+        "helvetica",
+        "normal"
+    );
+
+    pdf.text(
+        String(
+            orcamento.cliente?.nome ||
+            "Não informado"
+        ),
+        margem,
+        y
+    );
+
+    pdf.text(
+        String(
+            orcamento.cliente?.telefone ||
+            "Não informado"
+        ),
+        105,
+        y
+    );
+
+    y += 7;
+
+    if (
+        orcamento.cliente?.email
+    ) {
+        pdf.setFont(
+            "helvetica",
+            "bold"
+        );
+
+        pdf.text(
+            "E-mail",
+            margem,
+            y
+        );
+
+        y += 6;
+
+        pdf.setFont(
+            "helvetica",
+            "normal"
+        );
+
+        pdf.text(
+            String(
+                orcamento.cliente.email
+            ),
+            margem,
+            y
+        );
+
+        y += 7;
+    }
+
+    if (
+        orcamento.tipoOrcamento
+    ) {
+        pdf.setFont(
+            "helvetica",
+            "bold"
+        );
+
+        pdf.text(
+            "Tipo de orçamento",
+            margem,
+            y
+        );
+
+        y += 6;
+
+        pdf.setFont(
+            "helvetica",
+            "normal"
+        );
+
+        pdf.text(
+            String(
+                orcamento.tipoOrcamento
+            ),
+            margem,
+            y
+        );
+
+        y += 7;
+    }
+
+    if (
+        orcamento.descricaoGeral
+    ) {
+        adicionarTitulo(
+            "DESCRIÇÃO GERAL"
+        );
+
+        pdf.setFont(
+            "helvetica",
+            "normal"
+        );
+
+        const linhas =
+            textoPDFQuebrado(
+                pdf,
+                orcamento.descricaoGeral,
+                larguraConteudo,
+                9
+            );
+
+        linhas.forEach(
+            linha => {
+                garantirEspaco(
+                    8
+                );
+
+                pdf.text(
+                    linha,
+                    margem,
+                    y
+                );
+
+                y += 5;
+            }
+        );
+
+        y += 3;
+    }
+
+    // Ambientes
+    adicionarTitulo(
+        "AMBIENTES E SERVIÇOS"
+    );
+
+    for (
+        const ambiente of ambientes
+    ) {
+        garantirEspaco(
+            30
+        );
+
+        pdf.setFillColor(
+            245,
+            245,
+            245
+        );
+
+        pdf.roundedRect(
+            margem,
+            y - 5,
+            larguraConteudo,
+            12,
+            2,
+            2,
+            "F"
+        );
+
+        pdf.setFont(
+            "helvetica",
+            "bold"
+        );
+
+        pdf.setFontSize(
+            11
+        );
+
+        pdf.setTextColor(
+            25,
+            25,
+            25
+        );
+
+        pdf.text(
+            String(
+                ambiente.nome ||
+                "Ambiente"
+            ).toUpperCase(),
+            margem + 5,
+            y + 3
+        );
+
+        pdf.text(
+            formatarMoeda(
+                calcularTotalAmbiente(
+                    ambiente
+                )
+            ),
+            155,
+            y + 3
+        );
+
+        y += 15;
+
+        pdf.setFont(
+            "helvetica",
+            "bold"
+        );
+
+        pdf.setFontSize(8);
+
+        pdf.text(
+            "SERVIÇO",
+            24,
+            y
+        );
+
+        pdf.text(
+            "COBRANÇA",
+            94,
+            y
+        );
+
+        pdf.text(
+            "QTD.",
+            125,
+            y
+        );
+
+        pdf.text(
+            "TOTAL",
+            165,
+            y
+        );
+
+        y += 5;
+
+        pdf.setFont(
+            "helvetica",
+            "normal"
+        );
+
+        pdf.setFontSize(
+            8.5
+        );
+
+        for (
+            const item of (
+                ambiente.itens ||
+                []
+            )
+        ) {
+            const linhasDescricao =
+                pdf.splitTextToSize(
+                    String(
+                        item.descricao ||
+                        ""
+                    ),
+                    65
+                );
+
+            const altura =
+                Math.max(
+                    8,
+                    linhasDescricao.length *
+                        4.5 +
+                        (
+                            item.especificacoes
+                                ? 7
+                                : 0
+                        )
+                );
+
+            garantirEspaco(
+                altura + 5
+            );
+
+            pdf.setDrawColor(
+                235,
+                235,
+                235
+            );
+
+            pdf.line(
+                margem,
+                y + 2,
+                190,
+                y + 2
+            );
+
+            linhasDescricao.forEach(
+                (
+                    linha,
+                    indice
+                ) => {
+                    pdf.text(
+                        linha,
+                        24,
+                        y +
+                            indice *
+                                4.5
+                    );
+                }
+            );
+
+            if (
+                item.especificacoes
+            ) {
+                pdf.setFontSize(
+                    7.5
+                );
+
+                pdf.setTextColor(
+                    100,
+                    100,
+                    100
+                );
+
+                const specs =
+                    pdf.splitTextToSize(
+                        String(
+                            item.especificacoes
+                        ),
+                        65
+                    );
+
+                specs
+                    .slice(0, 2)
+                    .forEach(
+                        (
+                            linha,
+                            indice
+                        ) => {
+                            pdf.text(
+                                linha,
+                                24,
+                                y +
+                                    linhasDescricao.length *
+                                        4.5 +
+                                    indice *
+                                        3.5
+                            );
+                        }
+                    );
+
+                pdf.setTextColor(
+                    25,
+                    25,
+                    25
+                );
+
+                pdf.setFontSize(
+                    8.5
+                );
+            }
+
+            pdf.text(
+                String(
+                    item.unidade ||
+                    "un"
+                ),
+                94,
+                y
+            );
+
+            pdf.text(
+                item.unidade ===
+                    "empreitada"
+                    ? "—"
+                    : String(
+                          item.quantidade ??
+                              1
+                      ),
+                125,
+                y
+            );
+
+            pdf.text(
+                formatarMoeda(
+                    calcularTotalItem(
+                        item
+                    )
+                ),
+                165,
+                y
+            );
+
+            y += altura;
+        }
+
+        y += 6;
+    }
+
+    // Total geral
+    garantirEspaco(
+        30
+    );
+
+    y += 3;
+
+    pdf.setDrawColor(
+        180,
+        180,
+        180
+    );
+
+    pdf.line(
+        margem,
+        y,
+        190,
+        y
+    );
+
+    y += 13;
+
+    pdf.setFont(
+        "helvetica",
+        "bold"
+    );
+
+    pdf.setFontSize(
+        13
+    );
+
+    pdf.text(
+        "TOTAL GERAL",
+        20,
+        y
+    );
+
+    pdf.setFontSize(
+        18
+    );
+
+    pdf.text(
+        formatarMoeda(
+            totalGeral
+        ),
+        145,
+        y
+    );
+
+    y += 12;
+
+    // Informações opcionais
+    const secoes = [
+        [
+            "FORMA DE PAGAMENTO",
+            orcamento.formaPagamento
+        ],
+
+        [
+            "PRAZO DE EXECUÇÃO",
+            orcamento.prazoExecucao
+        ],
+
+        [
+            "ESPECIFICAÇÕES GERAIS",
+            orcamento.especificacoesGerais
+        ],
+
+        [
+            "OBSERVAÇÕES",
+            orcamento.observacoes
+        ]
+    ];
+
+    for (
+        const [titulo, texto]
+        of secoes
+    ) {
+        if (!texto) continue;
+
+        adicionarTitulo(
+            titulo
+        );
+
+        pdf.setFont(
+            "helvetica",
+            "normal"
+        );
+
+        pdf.setFontSize(9);
+
+        const linhas =
+            pdf.splitTextToSize(
+                String(texto),
+                larguraConteudo
+            );
+
+        for (
+            const linha of linhas
+        ) {
+            garantirEspaco(
+                7
+            );
+
+            pdf.text(
+                linha,
+                margem,
+                y
+            );
+
+            y += 5;
+        }
+
+        y += 3;
+    }
+
+    // Status
+    garantirEspaco(
+        15
+    );
+
+    pdf.setFont(
+        "helvetica",
+        "bold"
+    );
+
+    pdf.setFontSize(9);
+
+    pdf.text(
+        "STATUS:",
+        margem,
+        y
+    );
+
+    pdf.setFont(
+        "helvetica",
+        "normal"
+    );
+
+    pdf.text(
+        String(
+            orcamento.status ||
+            "Pendente"
+        ),
+        42,
+        y
+    );
+
+    adicionarRodape(
+        pdf
+    );
+
+    pdf.save(
+        `orcamento-${String(
+            index + 1
+        ).padStart(4, "0")}.pdf`
+    );
 }
 
+// ============================================================
+// WHATSAPP
+// ============================================================
 
+async function enviarWhatsApp(index) {
+    const orcamento =
+        orcamentos[index];
 
-// ================================
+    if (!orcamento?.cliente) {
+        alert(
+            "Orçamento não encontrado."
+        );
+        return;
+    }
+
+    const telefone =
+        String(
+            orcamento.cliente.telefone ||
+            ""
+        ).replace(
+            /\D/g,
+            ""
+        );
+
+    if (!telefone) {
+        alert(
+            "Este cliente não possui telefone cadastrado."
+        );
+        return;
+    }
+
+    const janela =
+        window.open(
+            "about:blank",
+            "_blank"
+        );
+
+    await gerarPDF(index);
+
+    const numero =
+        telefone.startsWith("55")
+            ? telefone
+            : `55${telefone}`;
+
+    const mensagem =
+        `Olá, ${orcamento.cliente.nome}!\n\n` +
+        `Estou enviando o orçamento da LR MULTI SERVICES.\n` +
+        `Valor total: ${formatarMoeda(
+            calcularTotalOrcamento(
+                orcamento
+            )
+        )}.\n\n` +
+        `Nº ${String(
+            index + 1
+        ).padStart(4, "0")}`;
+
+    const url =
+        `https://wa.me/${numero}?text=${encodeURIComponent(
+            mensagem
+        )}`;
+
+    if (janela) {
+        janela.location.href =
+            url;
+    } else {
+        window.open(
+            url,
+            "_blank"
+        );
+    }
+}
+
+// ============================================================
+// EXCLUIR ORÇAMENTO
+// ============================================================
+
+async function excluirOrcamento(
+    index
+) {
+    const confirmar =
+        await mostrarConfirmacao(
+            "Tem certeza que deseja excluir este orçamento?",
+            "Excluir orçamento?",
+            "Excluir"
+        );
+
+    if (!confirmar) return;
+
+    orcamentos.splice(
+        index,
+        1
+    );
+
+    salvarOrcamentos();
+
+    atualizarHistorico();
+    atualizarContadores();
+
+    alert(
+        "Orçamento excluído com sucesso!"
+    );
+}
+
+// ============================================================
 // INICIALIZAÇÃO
-// ================================
+// ============================================================
 
+atualizarCampoQuantidade();
 atualizarClientes();
-
+renderizarAmbientes();
 atualizarHistorico();
-
 atualizarContadores();
+verificarLogin();
