@@ -1,4 +1,3 @@
-
 * {
     margin: 0;
     padding: 0;
@@ -1350,5 +1349,94 @@ body {
 @media (max-width: 360px) {
     .historico .acoes {
         grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================================
+   CORREÇÃO — CLIENTES CADASTRADOS NO CELULAR
+   Apenas os botões EDITAR e EXCLUIR
+   ============================================================ */
+
+@media (max-width: 600px) {
+
+    /* Garante que a seção de clientes não ultrapasse a tela */
+    .lista-clientes {
+        width: 100%;
+        max-width: 100%;
+        overflow: hidden;
+    }
+
+    .lista-clientes .tabela-container {
+        width: 100%;
+        max-width: 100%;
+        overflow: hidden;
+    }
+
+    .lista-clientes table {
+        width: 100%;
+        max-width: 100%;
+        table-layout: fixed;
+    }
+
+    /* Coluna de ações */
+    .lista-clientes th:last-child,
+    .lista-clientes td:last-child {
+        width: 125px;
+        max-width: 125px;
+        padding-left: 6px;
+        padding-right: 6px;
+    }
+
+    /* Botões Editar e Excluir */
+    .lista-clientes td:last-child .acoes {
+        width: 100%;
+        max-width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        overflow: hidden;
+    }
+
+    .lista-clientes td:last-child .acoes button {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        padding: 9px 6px;
+        margin: 0;
+        font-size: 12px;
+        line-height: 1.2;
+        white-space: normal;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Evita que nome, telefone ou e-mail empurrem a tabela */
+    .lista-clientes td {
+        min-width: 0;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .lista-clientes td a {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+}
+
+/* iPhones menores */
+@media (max-width: 380px) {
+
+    .lista-clientes th:last-child,
+    .lista-clientes td:last-child {
+        width: 105px;
+        max-width: 105px;
+    }
+
+    .lista-clientes td:last-child .acoes button {
+        font-size: 11px;
+        padding: 8px 4px;
     }
 }
