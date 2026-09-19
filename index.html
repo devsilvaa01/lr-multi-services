@@ -5,6 +5,249 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LR Multi Services | Orçamentos</title>
     <link rel="stylesheet" href="style.css">
+
+    <style>
+        /* Complementos da nova organização por ambiente */
+        .orcamento-extra-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .orcamento-extra-grid .campo-full {
+            grid-column: 1 / -1;
+        }
+
+        .ambiente-editor {
+            margin-top: 24px;
+            padding: 20px;
+            border: 1px solid #e7e7e7;
+            border-radius: 14px;
+            background: #fafafa;
+        }
+
+        .ambiente-editor h3,
+        .ambientes-adicionados h3 {
+            margin: 0 0 6px;
+        }
+
+        .subtitulo-orcamento {
+            margin: 0 0 18px;
+            color: #777;
+            font-size: 14px;
+        }
+
+        .ambiente-form-grid {
+            display: grid;
+            grid-template-columns: minmax(180px, 1.2fr) minmax(180px, 1.5fr) minmax(150px, .9fr) minmax(120px, .7fr) minmax(140px, .8fr);
+            gap: 12px;
+            align-items: end;
+        }
+
+        .campo-especificacoes {
+            grid-column: 1 / -1;
+        }
+
+        .campo-especificacoes textarea,
+        #descricao-geral,
+        #especificacoes-gerais,
+        #forma-pagamento,
+        #prazo-execucao,
+        #observacoes {
+            width: 100%;
+            box-sizing: border-box;
+            resize: vertical;
+        }
+
+        .campo-especificacoes textarea {
+            min-height: 70px;
+        }
+
+        .acao-ambiente-form {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+        }
+
+        .lista-itens-ambiente {
+            margin-top: 18px;
+        }
+
+        .ambiente-rascunho,
+        .ambiente-card {
+            border: 1px solid #e5e5e5;
+            border-radius: 12px;
+            background: #fff;
+            padding: 16px;
+            margin-top: 12px;
+        }
+
+        .ambiente-cabecalho {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .ambiente-cabecalho strong {
+            display: block;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: .3px;
+        }
+
+        .ambiente-cabecalho small {
+            color: #777;
+        }
+
+        .ambiente-subtotal {
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .mini-tabela {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .mini-tabela th,
+        .mini-tabela td {
+            padding: 9px 8px;
+            border-bottom: 1px solid #eee;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .mini-tabela th {
+            font-size: 12px;
+            color: #777;
+            text-transform: uppercase;
+        }
+
+        .acoes-ambiente {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 12px;
+        }
+
+        .total-geral-destaque {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-top: 20px;
+            padding: 18px 20px;
+            border-radius: 14px;
+            background: #111;
+            color: #fff;
+        }
+
+        .total-geral-destaque span {
+            font-size: 14px;
+            opacity: .8;
+        }
+
+        .total-geral-destaque strong {
+            font-size: 24px;
+        }
+
+        .btn-secundario {
+            background: #eee;
+            color: #111;
+        }
+
+        .btn-perigo {
+            background: #f1dede;
+            color: #8b1e1e;
+        }
+
+        .sem-ambientes {
+            padding: 18px;
+            border: 1px dashed #ccc;
+            border-radius: 12px;
+            color: #777;
+            text-align: center;
+            margin-top: 14px;
+        }
+
+        .campo textarea {
+            font: inherit;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            min-height: 90px;
+        }
+
+        .modal-visualizacao {
+            width: min(900px, calc(100vw - 30px));
+            max-height: 88vh;
+            overflow: auto;
+            background: #fff;
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .visualizacao-topo {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 16px;
+            margin-bottom: 18px;
+        }
+
+        .visualizacao-ambiente {
+            margin: 18px 0;
+            border: 1px solid #eee;
+            border-radius: 12px;
+            padding: 14px;
+        }
+
+        .visualizacao-ambiente h4 {
+            margin: 0 0 12px;
+            text-transform: uppercase;
+        }
+
+        .visualizacao-total {
+            display: flex;
+            justify-content: space-between;
+            font-size: 20px;
+            font-weight: 700;
+            padding-top: 18px;
+            border-top: 2px solid #111;
+        }
+
+        @media (max-width: 850px) {
+            .ambiente-form-grid,
+            .orcamento-extra-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .orcamento-extra-grid .campo-full,
+            .campo-especificacoes {
+                grid-column: auto;
+            }
+
+            .mini-tabela {
+                min-width: 650px;
+            }
+
+            .lista-itens-ambiente {
+                overflow-x: auto;
+            }
+
+            .total-geral-destaque,
+            .ambiente-cabecalho,
+            .visualizacao-topo {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
 </head>
 <body>
     <section class="tela-login" id="tela-login">
@@ -22,262 +265,201 @@
     </section>
 
     <div id="app" class="app-oculto">
-    <header class="topo">
-        <div class="topo-conteudo">
-            <img src="logo.png" alt="LR Multi Services" class="logo-sistema">
-            <div class="topo-texto">
-                <h1>LR MULTI SERVICES</h1>
-                <p>Sistema de Orçamentos</p>
-            </div>
-        </div>
-        <button type="button" class="btn-sair" id="btn-sair">Sair</button>
-    </header>
-
-    <main>
-        <section class="dashboard">
-            <div class="dashboard-cabecalho">
-                <div>
-                    <span class="dashboard-kicker">LR MULTI SERVICES</span>
-                    <h2>Painel inicial</h2>
-                    <p>Acompanhe seus clientes e orçamentos em um só lugar.</p>
-                </div>
-                <div class="data-atual">
-                    <span>ORÇAMENTOS</span>
-                    <strong>Área de trabalho</strong>
+        <header class="topo">
+            <div class="topo-conteudo">
+                <img src="logo.png" alt="LR Multi Services" class="logo-sistema">
+                <div class="topo-texto">
+                    <h1>LR MULTI SERVICES</h1>
+                    <p>Sistema de Orçamentos</p>
                 </div>
             </div>
+            <button type="button" class="btn-sair" id="btn-sair">Sair</button>
+        </header>
 
-            <div class="cards">
-                <div class="card card-clientes">
-                    <div class="card-icone">01</div>
-                    <div class="card-info">
-                        <span>Total de clientes</span>
-                        <strong id="total-clientes">0</strong>
-                        <small>Clientes cadastrados</small>
+        <main>
+            <section class="dashboard">
+                <div class="dashboard-cabecalho">
+                    <div>
+                        <span class="dashboard-kicker">LR MULTI SERVICES</span>
+                        <h2>Painel inicial</h2>
+                        <p>Acompanhe seus clientes e orçamentos em um só lugar.</p>
+                    </div>
+                    <div class="data-atual">
+                        <span>ORÇAMENTOS</span>
+                        <strong>Área de trabalho</strong>
                     </div>
                 </div>
 
-                <div class="card card-orcamentos">
-                    <div class="card-icone">02</div>
-                    <div class="card-info">
-                        <span>Total de orçamentos</span>
-                        <strong id="total-orcamentos">0</strong>
-                        <small>Orçamentos gerados</small>
-                    </div>
+                <div class="cards">
+                    <div class="card card-clientes"><div class="card-icone">01</div><div class="card-info"><span>Total de clientes</span><strong id="total-clientes">0</strong><small>Clientes cadastrados</small></div></div>
+                    <div class="card card-orcamentos"><div class="card-icone">02</div><div class="card-info"><span>Total de orçamentos</span><strong id="total-orcamentos">0</strong><small>Orçamentos gerados</small></div></div>
+                    <div class="card card-pendentes"><div class="card-icone">03</div><div class="card-info"><span>Pendentes</span><strong id="total-pendentes">0</strong><small>Aguardando retorno</small></div></div>
+                    <div class="card card-aprovados"><div class="card-icone">04</div><div class="card-info"><span>Aprovados</span><strong id="total-aprovados">0</strong><small>Orçamentos aprovados</small></div></div>
+                    <div class="card card-recusados"><div class="card-icone">05</div><div class="card-info"><span>Recusados</span><strong id="total-recusados">0</strong><small>Orçamentos recusados</small></div></div>
                 </div>
 
-                <div class="card card-pendentes">
-                    <div class="card-icone">03</div>
-                    <div class="card-info">
-                        <span>Pendentes</span>
-                        <strong id="total-pendentes">0</strong>
-                        <small>Aguardando retorno</small>
-                    </div>
+                <div class="painel-destaque">
+                    <div class="destaque-logo"><img src="logo.png" alt="LR Multi Services"></div>
+                    <div class="destaque-texto"><span>LR MULTI SERVICES</span><h3>Seu projeto, do começo ao fim.</h3><p>Orçamentos simples, organizados e prontos para enviar ao cliente.</p></div>
                 </div>
+            </section>
 
-                <div class="card card-aprovados">
-                    <div class="card-icone">04</div>
-                    <div class="card-info">
-                        <span>Aprovados</span>
-                        <strong id="total-aprovados">0</strong>
-                        <small>Orçamentos aprovados</small>
-                    </div>
+            <section class="backup">
+                <div><h2>Backup dos dados</h2><p>Salve uma cópia dos clientes e orçamentos para não perder seus dados.</p></div>
+                <div class="backup-acoes">
+                    <button type="button" class="btn-backup" id="btn-exportar-backup">Exportar backup</button>
+                    <label class="btn-backup btn-importar" for="input-importar-backup">Importar backup</label>
+                    <input type="file" id="input-importar-backup" accept=".json,application/json" hidden>
                 </div>
+            </section>
 
-                <div class="card card-recusados">
-                    <div class="card-icone">05</div>
-                    <div class="card-info">
-                        <span>Recusados</span>
-                        <strong id="total-recusados">0</strong>
-                        <small>Orçamentos recusados</small>
-                    </div>
-                </div>
-            </div>
+            <section class="clientes">
+                <h2>Cadastro de clientes</h2>
+                <form id="form-cliente">
+                    <input type="text" id="nome" placeholder="Nome do cliente" required>
+                    <input type="tel" id="telefone" placeholder="Telefone / WhatsApp" required>
+                    <input type="email" id="email" placeholder="E-mail">
+                    <button type="submit">Cadastrar cliente</button>
+                </form>
+            </section>
 
-            <div class="painel-destaque">
-                <div class="destaque-logo">
-                    <img src="logo.png" alt="LR Multi Services">
-                </div>
-                <div class="destaque-texto">
-                    <span>LR MULTI SERVICES</span>
-                    <h3>Seu projeto, do começo ao fim.</h3>
-                    <p>Orçamentos simples, organizados e prontos para enviar ao cliente.</p>
-                </div>
-            </div>
-        </section>
-
-        <section class="backup">
-            <div>
-                <h2>Backup dos dados</h2>
-                <p>Salve uma cópia dos clientes e orçamentos para não perder seus dados.</p>
-            </div>
-
-            <div class="backup-acoes">
-                <button type="button" class="btn-backup" id="btn-exportar-backup">
-                    Exportar backup
-                </button>
-
-                <label class="btn-backup btn-importar" for="input-importar-backup">
-                    Importar backup
-                </label>
-
-                <input
-                    type="file"
-                    id="input-importar-backup"
-                    accept=".json,application/json"
-                    hidden
-                >
-            </div>
-        </section>
-
-        <section class="clientes">
-            <h2>Cadastro de clientes</h2>
-            <form id="form-cliente">
-                <input type="text" id="nome" placeholder="Nome do cliente" required>
-                <input type="tel" id="telefone" placeholder="Telefone / WhatsApp" required>
-                <input type="email" id="email" placeholder="E-mail">
-                <button type="submit">Cadastrar cliente</button>
-            </form>
-        </section>
-
-        <section class="lista-clientes">
-            <h2>Clientes cadastrados</h2>
-            <div class="tabela-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Nome</th>
-                            <th>Telefone</th>
-                            <th>E-mail</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="lista-clientes"></tbody>
-                </table>
-            </div>
-        </section>
-
-        <section class="orcamentos">
-            <h2>Novo orçamento</h2>
-
-            <form id="form-orcamento">
-                <div class="campo">
-                    <label for="cliente-orcamento">Cliente</label>
-                    <select id="cliente-orcamento" required>
-                        <option value="">Selecione um cliente</option>
-                    </select>
-                </div>
-
-                <div class="campo">
-                    <label for="descricao">Descrição do serviço</label>
-                    <input
-                        type="text"
-                        id="descricao"
-                        placeholder="Ex: Instalação de gesso"
-                        required
-                    >
-                </div>
-
-                <div class="orcamento-valores">
-                    <div class="campo">
-                        <label for="unidade">Unidade</label>
-                        <select id="unidade" required>
-                            <option value="un">Unidade (un.)</option>
-                            <option value="m²">Metro quadrado (m²)</option>
-                            <option value="m">Metro (m)</option>
-                            <option value="cm">Centímetro (cm)</option>
-                            <option value="m³">Metro cúbico (m³)</option>
-                            <option value="kg">Quilograma (kg)</option>
-                            <option value="l">Litro (L)</option>
-                            <option value="sc">Saco (sc.)</option>
-                            <option value="dia">Diária</option>
-                            <option value="vb">Verba (vb.)</option>
-                        </select>
-                    </div>
-
-                    <div class="campo">
-                        <label for="quantidade">Quantidade</label>
-                        <input
-                            type="number"
-                            id="quantidade"
-                            min="1"
-                            value="1"
-                            required
-                        >
-                    </div>
-
-                    <div class="campo">
-                        <label for="valor">Valor unitário</label>
-                        <input
-                            type="number"
-                            id="valor"
-                            placeholder="0,00"
-                            min="0"
-                            step="0.01"
-                            required
-                        >
-                    </div>
-                </div>
-
-                <button type="submit">Adicionar item</button>
-            </form>
-
-            <div class="itens-orcamento">
-                <h3>Itens adicionados</h3>
-
+            <section class="lista-clientes">
+                <h2>Clientes cadastrados</h2>
                 <div class="tabela-container">
                     <table>
-                        <thead>
-                            <tr>
-                                <th>Descrição</th>
-                                <th>Unidade</th>
-                                <th>Quantidade</th>
-                                <th>Valor unitário</th>
-                                <th>Total</th>
-                                <th>Ação</th>
-                            </tr>
-                        </thead>
-                        <tbody id="lista-itens"></tbody>
+                        <thead><tr><th>Nome</th><th>Telefone</th><th>E-mail</th><th>Ações</th></tr></thead>
+                        <tbody id="lista-clientes"></tbody>
                     </table>
                 </div>
+            </section>
 
-                <div class="total-orcamento">
-                    <span>Total do orçamento:</span>
+            <section class="orcamentos">
+                <h2>Novo orçamento</h2>
+                <p class="subtitulo-orcamento">Monte o orçamento por ambiente. Cada ambiente pode ter um ou vários serviços, com subtotal e total geral.</p>
+
+                <div class="orcamento-extra-grid">
+                    <div class="campo">
+                        <label for="cliente-orcamento">Cliente</label>
+                        <select id="cliente-orcamento" required><option value="">Selecione um cliente</option></select>
+                    </div>
+                    <div class="campo">
+                        <label for="tipo-orcamento">Tipo de orçamento</label>
+                        <select id="tipo-orcamento">
+                            <option value="">Não informado</option>
+                            <option value="Mão de obra">Mão de obra</option>
+                            <option value="Material e mão de obra">Material e mão de obra</option>
+                            <option value="Material">Material</option>
+                            <option value="Outro">Outro</option>
+                        </select>
+                    </div>
+                    <div class="campo campo-full">
+                        <label for="descricao-geral">Descrição geral <small>(opcional)</small></label>
+                        <textarea id="descricao-geral" placeholder="Ex: Reforma geral da residência, incluindo cozinha e banheiros."></textarea>
+                    </div>
+                </div>
+
+                <div class="ambiente-editor">
+                    <h3>Adicionar ambiente</h3>
+                    <p class="subtitulo-orcamento">Exemplo: Cozinha → Empreitada → R$ 3.500,00.</p>
+
+                    <form id="form-item-ambiente">
+                        <div class="ambiente-form-grid">
+                            <div class="campo">
+                                <label for="nome-ambiente">Ambiente</label>
+                                <input type="text" id="nome-ambiente" placeholder="Ex: Cozinha" required>
+                            </div>
+                            <div class="campo">
+                                <label for="descricao-item">Serviço / descrição</label>
+                                <input type="text" id="descricao-item" placeholder="Ex: Reforma completa">
+                            </div>
+                            <div class="campo">
+                                <label for="unidade">Cobrança</label>
+                                <select id="unidade">
+                                    <option value="empreitada">Empreitada</option>
+                                    <option value="un">Unidade (un.)</option>
+                                    <option value="m²">Metro quadrado (m²)</option>
+                                    <option value="m">Metro (m)</option>
+                                    <option value="cm">Centímetro (cm)</option>
+                                    <option value="m³">Metro cúbico (m³)</option>
+                                    <option value="kg">Quilograma (kg)</option>
+                                    <option value="l">Litro (L)</option>
+                                    <option value="sc">Saco (sc.)</option>
+                                    <option value="dia">Diária</option>
+                                    <option value="hora">Hora</option>
+                                    <option value="vb">Verba (vb.)</option>
+                                </select>
+                            </div>
+                            <div class="campo" id="campo-quantidade">
+                                <label for="quantidade">Quantidade</label>
+                                <input type="number" id="quantidade" min="0.01" step="0.01" value="1">
+                            </div>
+                            <div class="campo">
+                                <label for="valor">Valor</label>
+                                <input type="number" id="valor" placeholder="0,00" min="0" step="0.01" required>
+                            </div>
+                            <div class="campo campo-especificacoes">
+                                <label for="especificacoes-item">Especificações / acabamento <small>(opcional)</small></label>
+                                <textarea id="especificacoes-item" placeholder="Ex: Material zincado, pintado na cor marrom fosco."></textarea>
+                            </div>
+                        </div>
+
+                        <div class="acao-ambiente-form">
+                            <button type="submit">Adicionar item ao ambiente</button>
+                            <button type="button" class="btn-secundario" id="btn-limpar-item">Limpar</button>
+                        </div>
+                    </form>
+
+                    <div id="itens-ambiente-rascunho" class="lista-itens-ambiente"></div>
+
+                    <div class="acao-ambiente-form">
+                        <button type="button" id="btn-adicionar-ambiente">Adicionar ambiente ao orçamento</button>
+                    </div>
+                </div>
+
+                <div class="ambientes-adicionados" style="margin-top:24px;">
+                    <h3>Ambientes do orçamento</h3>
+                    <div id="lista-ambientes"></div>
+                </div>
+
+                <div class="orcamento-extra-grid" style="margin-top:24px;">
+                    <div class="campo">
+                        <label for="forma-pagamento">Forma de pagamento <small>(opcional)</small></label>
+                        <textarea id="forma-pagamento" placeholder="Ex: R$ 400 de entrada e R$ 1.000 na conclusão."></textarea>
+                    </div>
+                    <div class="campo">
+                        <label for="prazo-execucao">Prazo de execução <small>(opcional)</small></label>
+                        <textarea id="prazo-execucao" placeholder="Ex: 5 dias úteis após a aprovação."></textarea>
+                    </div>
+                    <div class="campo campo-full">
+                        <label for="especificacoes-gerais">Especificações gerais <small>(opcional)</small></label>
+                        <textarea id="especificacoes-gerais" placeholder="Condições, responsabilidades, materiais, proteção dos acabamentos etc."></textarea>
+                    </div>
+                    <div class="campo campo-full">
+                        <label for="observacoes">Observações <small>(opcional)</small></label>
+                        <textarea id="observacoes" placeholder="Observações adicionais do orçamento."></textarea>
+                    </div>
+                </div>
+
+                <div class="total-geral-destaque">
+                    <div><span>Total geral</span><div>Somatório de todos os ambientes</div></div>
                     <strong id="valor-total">R$ 0,00</strong>
                 </div>
 
-                <button
-                    type="button"
-                    id="btn-finalizar-orcamento"
-                    class="btn-finalizar"
-                >
-                    Finalizar orçamento
-                </button>
-            </div>
-        </section>
+                <button type="button" id="btn-finalizar-orcamento" class="btn-finalizar" style="margin-top:16px;">Finalizar orçamento</button>
+            </section>
 
-        <section class="historico">
-            <h2>Histórico de orçamentos</h2>
-
-            <div class="tabela-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Cliente</th>
-                            <th>Data</th>
-                            <th>Total</th>
-                            <th>Status</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="lista-orcamentos"></tbody>
-                </table>
-            </div>
-        </section>
-    </main>
+            <section class="historico">
+                <h2>Histórico de orçamentos</h2>
+                <div class="tabela-container">
+                    <table>
+                        <thead><tr><th>Cliente</th><th>Data</th><th>Total</th><th>Status</th><th>Ações</th></tr></thead>
+                        <tbody id="lista-orcamentos"></tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
     </div>
 
-    <!-- MODAL DE CONFIRMAÇÃO -->
     <div class="modal-overlay" id="modal-confirmacao" aria-hidden="true">
         <div class="modal-confirmacao" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
             <div class="modal-icone">!</div>
@@ -287,6 +469,16 @@
                 <button type="button" class="modal-btn modal-cancelar" id="modal-cancelar">Cancelar</button>
                 <button type="button" class="modal-btn modal-confirmar" id="modal-confirmar">Confirmar</button>
             </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modal-visualizacao" aria-hidden="true">
+        <div class="modal-visualizacao">
+            <div class="visualizacao-topo">
+                <div><h3 id="visualizacao-titulo">Orçamento</h3><p id="visualizacao-subtitulo"></p></div>
+                <button type="button" class="modal-btn modal-cancelar" id="fechar-visualizacao">Fechar</button>
+            </div>
+            <div id="visualizacao-conteudo"></div>
         </div>
     </div>
 
