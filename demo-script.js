@@ -105,22 +105,6 @@ const erroLogin = document.querySelector("#login-erro");
 const botaoSair = document.querySelector("#btn-sair");
 
 
-if (DEMO_MODE) {
-    const loginCard = document.querySelector(".login-card");
-
-    if (loginCard) {
-        const avisoDemo = document.createElement("div");
-        avisoDemo.className = "aviso-demo";
-        avisoDemo.innerHTML = `
-            <strong>Modo demonstração</strong>
-            <span>Usuário: <b>visitante</b></span>
-            <span>Senha: <b>demo2026</b></span>
-            <small>Os dados exibidos são fictícios.</small>
-        `;
-
-        loginCard.insertBefore(avisoDemo, formularioLogin);
-    }
-}
 
 function verificarLogin() {
     const logado = appSessionStorage.getItem("lrMultiServicesLogado") === "true";
